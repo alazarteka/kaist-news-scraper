@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Herald nightly
+
+[Timer]
+OnCalendar=*-*-* 02:15:00
+Persistent=true
+Unit=herald.service
+
+[Install]
+WantedBy=timers.target

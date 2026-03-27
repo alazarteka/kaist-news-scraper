@@ -1,0 +1,1 @@
+15 2 * * * OPENROUTER_API_KEY=your-key-here /opt/herald/.venv/bin/herald build --config /etc/herald/herald.toml

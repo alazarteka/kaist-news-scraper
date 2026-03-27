@@ -1,80 +1,115 @@
-## Herald
+# Herald
 
-`herald` scrapes KAIST's Korean research feed plus the Korean and English KAIST news feeds, then classifies which items are actual research articles.
+`herald` builds a private KAIST research digest as a static site.
 
-The pipeline is deterministic first:
+Each run:
 
-- scrape exact list-page selectors: `a.lay`, `strong.tis`, `span.tes`, `span.date`
-- trust the dedicated `researchnews.kaist.ac.kr` host
-- reject obvious admin/event items with rules
-- send only ambiguous main-news items to OpenRouter when `OPENROUTER_API_KEY` is present
-- after selection, translate Korean titles to English when OpenRouter is active
-- cache OpenRouter decisions locally so repeated runs are cheap
+1. scrapes KAIST research and news feeds
+2. classifies research items with rules and optional OpenRouter fallback
+3. translates selected Korean titles into English
+4. merges new items into a persistent archive
+5. renders a single static HTML page and JSON feed
 
-## Requirements
+The output is intentionally simple: minimal CSS, no client-side JavaScript, newest days first. It is designed to sit behind your Tailscale-accessible host and rebuild unattended every night.
 
-- Python `3.13`
-- dependencies installed through `uv`
-- optional: `OPENROUTER_API_KEY` for LLM classification
+## Catch-Up Behavior
+
+The build is archive-aware. If the machine is off for a few days, the next run uses the latest archived date plus an overlap window to backfill missed items before rebuilding the site.
+
+For longer outages, raise `cutoff_days` and `page_limit` in your config.
+
+## Repository Layout
+
+```text
+src/herald/     application package
+tests/          unit tests
+docs/           architecture, deployment, release notes
+deploy/         production examples for config, cron, and systemd
+prototype/      preserved untracked snapshot of the original prototype
+```
+
+See `docs/architecture.md`, `docs/deployment.md`, and `docs/release.md`.
 
 ## Install
 
+For local development:
+
 ```bash
 uv sync
+uv pip install -e .
 ```
 
-## Main usage
-
-Recent research digest with automatic classification:
+From GitHub:
 
 ```bash
-uv run python main.py --research-only --output-json out/research.json --output-markdown out/research.md
+pip install git+https://github.com/alazarteka/kaist-news-scraper.git
 ```
 
-Use OpenRouter explicitly with the recommended cheap model:
+From a built wheel:
 
 ```bash
-export OPENROUTER_API_KEY=...
-uv run python main.py \
-  --classifier openrouter \
-  --classification-model qwen/qwen-2.5-7b-instruct \
-  --translation-model openai/gpt-4.1-mini \
-  --research-only \
-  --output-json out/research.json \
-  --output-csv out/research.csv \
-  --output-markdown out/research.md
+pip install herald-0.3.0-py3-none-any.whl
 ```
 
-Conservative rules-only mode with no API calls:
+## Quick Start
+
+Create a config:
 
 ```bash
-uv run python main.py --classifier rules --research-only
+herald init-config --output herald.toml
 ```
 
-## Useful options
+Or start from the repo example:
 
-- `--sources kr_research kr_news en_news`: choose which feeds to scrape
-- `--pages 5`: maximum pages per source
-- `--cutoff-date YYYY-MM-DD`: keep only newer items
-- `--classifier auto|rules|openrouter|none`
-- `--classification-model ...`: model used only for ambiguous research classification
-- `--translation-model ...`: model used only for Korean title translation
-- `--translation-batch-size 16`: number of titles per translation request
-- `--cache-path .cache/herald-openrouter-cache.json`
-- `--research-only`: drop non-research items from the output
+```bash
+cp herald.toml.example herald.toml
+```
 
-If `--cutoff-date` is omitted, the scraper defaults to the last 30 days.
+Run a build:
 
-## Legacy helper scripts
+```bash
+herald build --config herald.toml
+```
 
-These now call the shared pipeline:
+For local repo development:
 
-- `uv run python scrape_kaist_news.py`
-- `uv run python scrape_kaist_research.py`
-- `uv run python scrape_kaist_comprehensive.py`
+```bash
+uv run python -m herald.cli build --config herald.toml
+```
+
+If `OPENROUTER_API_KEY` is present, Herald will use it for ambiguous classification and Korean title translation. Without it, the pipeline still runs in rules-only mode.
+
+## Runtime Outputs
+
+By default the application writes:
+
+- `var/archive.json`
+- `var/openrouter-cache.json`
+- `site/index.html`
+- `site/feed.json`
+- `site/assets/styles.css`
+
+These are runtime artifacts and should stay out of git.
+
+## Operations
+
+Production-oriented examples live in `deploy/`:
+
+- `deploy/herald.toml.production.example`
+- `deploy/systemd/herald.service`
+- `deploy/systemd/herald.timer`
+- `deploy/cron/herald.cron`
+
+The recommended flow is:
+
+1. install Herald into its own virtual environment
+2. place config under `/etc/herald/herald.toml`
+3. store `OPENROUTER_API_KEY` in an environment file if needed
+4. run `herald build` from a nightly timer or cron job
+5. serve the rendered `site/` directory privately over Tailscale
 
 ## Tests
 
 ```bash
-uv run python -m unittest -v
+uv run python -m unittest discover -s tests -v
 ```

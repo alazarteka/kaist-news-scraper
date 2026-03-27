@@ -1,0 +1,13 @@
+[Unit]
+Description=Build Herald KAIST research digest
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/lib/herald
+EnvironmentFile=-/etc/herald/openrouter.env
+ExecStart=/opt/herald/.venv/bin/herald build --config /etc/herald/herald.toml
+
+[Install]
+WantedBy=multi-user.target
