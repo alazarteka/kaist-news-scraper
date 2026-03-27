@@ -33,6 +33,15 @@ def render_site(articles: list[Article], config: AppConfig) -> None:
     )
 
 
+def _format_dateline(raw_date: str) -> str:
+    """Turn '2026.03.27' into 'Friday, 27 March 2026'."""
+    try:
+        parsed = datetime.strptime(raw_date, "%Y.%m.%d")
+    except ValueError:
+        return raw_date
+    return f"{parsed.strftime('%A')}, {parsed.day} {parsed.strftime('%B %Y')}"
+
+
 def build_index_html(articles: list[Article], config: AppConfig) -> str:
     grouped: dict[str, list[Article]] = defaultdict(list)
     for article in articles:
@@ -48,13 +57,13 @@ def build_index_html(articles: list[Article], config: AppConfig) -> str:
             build_article_html(article, config.include_original_title)
             for article in day_articles
         )
+        dateline = _format_dateline(article_date)
+        n = len(day_articles)
         sections.append(
             "<section class=\"day\">"
-            "<div class=\"day-header\">"
-            f"<div><p class=\"day-label\">Research Day</p><h2>{html.escape(article_date)}</h2></div>"
-            f"<p class=\"day-count\">{len(day_articles)} item{'s' if len(day_articles) != 1 else ''}</p>"
-            "</div>"
-            f"<ul class=\"stories\">{items}</ul>"
+            f"<header class=\"dateline\"><h2>{html.escape(dateline)}</h2>"
+            f"<span class=\"day-n\">{n} piece{'s' if n != 1 else ''}</span></header>"
+            f"<ol class=\"stories\">{items}</ol>"
             "</section>"
         )
 
@@ -69,29 +78,19 @@ def build_index_html(articles: list[Article], config: AppConfig) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <base href="{base_path}">
     <title>KAIST Research Digest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{stylesheet_href}">
   </head>
   <body>
     <main class="page">
-      <header class="hero">
-        <p class="eyebrow">Private Tailnet Digest</p>
-        <h1>KAIST Research Digest</h1>
-        <p class="lede">A quiet, private archive of KAIST research coverage. Newest days stay on top, older items remain browseable, and Korean headlines can be translated into English during the nightly build.</p>
-        <dl class="hero-stats">
-          <div>
-            <dt>Articles</dt>
-            <dd>{article_count}</dd>
-          </div>
-          <div>
-            <dt>Days</dt>
-            <dd>{day_count}</dd>
-          </div>
-          <div>
-            <dt>Latest</dt>
-            <dd>{html.escape(latest_date)}</dd>
-          </div>
-        </dl>
-        <p class="meta">Last rebuilt {html.escape(updated_at)}</p>
+      <header class="masthead">
+        <div class="masthead-rule"></div>
+        <p class="flag">Private Tailnet Edition</p>
+        <h1>The KAIST<br>Research Digest</h1>
+        <p class="folio">{article_count} articles across {day_count} days &middot; Latest {html.escape(latest_date)} &middot; Rebuilt {html.escape(updated_at)}</p>
+        <div class="masthead-rule"></div>
       </header>
       {body}
     </main>
@@ -103,29 +102,26 @@ def build_index_html(articles: list[Article], config: AppConfig) -> str:
 def build_article_html(article: Article, include_original_title: bool) -> str:
     original = ""
     if include_original_title and article.title_original:
-        original = f"<p class=\"original\">Original: {html.escape(article.title_original)}</p>"
+        original = f"<p class=\"orig\">{html.escape(article.title_original)}</p>"
 
     source = html.escape(SOURCE_LABELS.get(article.source, article.source.replace("_", " ")))
-    lang = "EN" if article.lang == "en" else "KR"
+    lang = "English" if article.lang == "en" else "Korean"
     title = html.escape(article.title)
     url = html.escape(article.url, quote=True)
     preview = ""
     if article.summary:
-        preview = f"<p class=\"preview\">{html.escape(' '.join(article.summary.split()))}</p>"
+        preview = f"<p class=\"lede\">{html.escape(' '.join(article.summary.split()))}</p>"
     elif article.preview:
-        preview = f"<p class=\"preview\">{html.escape(compact_preview(article.preview, limit=360))}</p>"
+        preview = f"<p class=\"lede\">{html.escape(compact_preview(article.preview, limit=360))}</p>"
 
     return (
-        "<li class=\"story\">"
-        "<article class=\"story-card\">"
-        "<div class=\"story-topline\">"
-        f"<span class=\"badge source\">{source}</span>"
-        f"<span class=\"badge lang\">{lang}</span>"
-        "</div>"
-        f"<a class=\"title\" href=\"{url}\">{title}</a>"
+        "<li class=\"item\">"
+        "<article>"
+        f"<h3><a href=\"{url}\">{title}</a></h3>"
         f"{original}"
         f"{preview}"
-        f"<p class=\"details\"><a class=\"story-link\" href=\"{url}\">Open original article</a></p>"
+        f"<footer class=\"byline\">{source} &middot; {lang}"
+        f" &middot; <a href=\"{url}\">Read&nbsp;original&thinsp;&rarr;</a></footer>"
         "</article>"
         "</li>"
     )
@@ -142,278 +138,240 @@ def compact_preview(value: str, limit: int = 220) -> str:
 
 
 STYLES_CSS = """
+/* ── Herald — Private Scholarly Broadsheet ── */
+
 :root {
-  --bg: #f2ede3;
-  --surface: rgba(255, 252, 246, 0.96);
-  --surface-strong: #fffaf2;
-  --ink: #1c1712;
-  --muted: #6c6256;
-  --accent: #145f59;
-  --accent-soft: rgba(20, 95, 89, 0.1);
-  --border: rgba(28, 23, 18, 0.12);
-  --shadow: 0 18px 48px rgba(43, 32, 21, 0.08);
-  --shadow-soft: 0 10px 24px rgba(43, 32, 21, 0.05);
+  --ink:       #1a1510;
+  --muted:     #756b5e;
+  --wine:      #8b2332;
+  --gold:      #a67c2e;
+  --rule:      rgba(26, 21, 16, 0.22);
+  --rule-fine: rgba(26, 21, 16, 0.10);
+  --paper:     #f5f0e8;
+  --cream:     #faf6ee;
 }
 
-* {
-  box-sizing: border-box;
-}
+*,
+*::before,
+*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
 
 body {
-  margin: 0;
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-family: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-size: 17px;
+  line-height: 1.58;
   color: var(--ink);
-  background:
-    radial-gradient(circle at top left, rgba(20, 95, 89, 0.12), transparent 28%),
-    radial-gradient(circle at right 20%, rgba(168, 126, 45, 0.08), transparent 24%),
-    linear-gradient(180deg, #faf6ee 0%, var(--bg) 100%);
+  background: var(--paper);
+  /* subtle paper grain via SVG noise */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
 }
+
+/* ── Page chrome ── */
 
 .page {
-  width: min(980px, calc(100vw - 32px));
+  width: min(720px, calc(100vw - 40px));
   margin: 0 auto;
-  padding: 48px 0 72px;
+  padding: 56px 0 80px;
 }
 
-.hero,
-.day {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  box-shadow: var(--shadow);
+/* ── Masthead ── */
+
+.masthead {
+  text-align: center;
+  padding: 0 0 6px;
+  margin-bottom: 40px;
 }
 
-.hero {
-  padding: 34px 32px 28px;
-  margin-bottom: 24px;
-}
-
-.eyebrow,
-.meta,
-.original,
-.lede {
+.masthead-rule {
+  height: 0;
+  border: none;
+  border-top: 2px solid var(--ink);
   margin: 0;
 }
 
-.eyebrow {
-  color: var(--accent);
+/* thin double-rule effect */
+.masthead-rule + .flag { margin-top: 18px; }
+.masthead-rule:last-child { border-top-width: 1px; margin-top: 16px; }
+
+.flag {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 0.72rem;
+  font-style: italic;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.76rem;
-  margin-bottom: 10px;
-}
-
-h1,
-h2 {
-  margin: 0;
-  font-weight: 600;
+  color: var(--muted);
 }
 
 h1 {
-  font-size: clamp(2.2rem, 5vw, 3.7rem);
-  line-height: 0.98;
-  letter-spacing: -0.03em;
-  margin-bottom: 16px;
+  font-family: "Fraunces", "Newsreader", Georgia, serif;
+  font-optical-sizing: auto;
+  font-weight: 900;
+  font-size: clamp(2.6rem, 7vw, 4.4rem);
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+  margin: 12px 0 14px;
 }
 
-.lede {
+.folio {
+  font-size: 0.82rem;
   color: var(--muted);
-  max-width: 65ch;
-  font-size: 1.02rem;
-  line-height: 1.55;
+  letter-spacing: 0.02em;
 }
 
-.hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 22px 0 0;
-}
+/* ── Day sections ── */
 
-.hero-stats div {
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 16px;
-  box-shadow: var(--shadow-soft);
-}
+.day { margin-bottom: 36px; }
 
-.hero-stats dt {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.hero-stats dd {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.meta {
-  margin-top: 18px;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.day {
-  padding: 22px 24px 24px;
-  margin-bottom: 18px;
-}
-
-.day-header {
+.dateline {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  align-items: baseline;
+  gap: 14px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 8px;
+  margin-bottom: 20px;
 }
 
-.day-label {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-size: 0.78rem;
+.dateline h2 {
+  font-family: "Newsreader", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  color: var(--gold);
 }
 
-.day h2 {
-  font-size: 1.45rem;
-  line-height: 1.05;
-}
-
-.day-count {
-  margin: 0;
+.day-n {
+  font-size: 0.78rem;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-style: italic;
 }
+
+/* ── Article list ── */
 
 .stories {
   list-style: none;
-  margin: 0;
-  padding: 0;
+  counter-reset: piece;
 }
 
-.story + .story {
-  border-top: 1px solid var(--border);
-  margin-top: 16px;
-  padding-top: 16px;
+.item {
+  position: relative;
+  padding: 0 0 20px 28px;
+  counter-increment: piece;
 }
 
-.story-card {
-  background: var(--surface-strong);
-  border: 1px solid rgba(28, 23, 18, 0.08);
-  border-radius: 18px;
-  padding: 16px 16px 14px;
-  box-shadow: var(--shadow-soft);
-}
-
-.story-topline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.badge.source {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.badge.lang {
-  background: rgba(28, 23, 18, 0.06);
+.item::before {
+  content: counter(piece);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 300;
+  font-size: 0.92rem;
   color: var(--muted);
+  opacity: 0.6;
 }
 
-.title {
+.item + .item {
+  border-top: 1px solid var(--rule-fine);
+  padding-top: 18px;
+}
+
+/* ── Article content ── */
+
+.item h3 {
+  font-family: "Newsreader", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.18rem;
+  line-height: 1.32;
+  margin-bottom: 4px;
+}
+
+.item h3 a {
   color: var(--ink);
   text-decoration: none;
-  font-size: 1.14rem;
-  line-height: 1.35;
-  font-weight: 600;
+  background-image: linear-gradient(var(--wine), var(--wine));
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s ease;
 }
 
-.title:hover {
-  color: var(--accent);
+.item h3 a:hover {
+  background-size: 100% 1px;
+  color: var(--wine);
 }
 
-.original {
-  margin-top: 8px;
+.orig {
+  font-size: 0.88rem;
+  font-style: italic;
   color: var(--muted);
-  font-size: 0.93rem;
   line-height: 1.45;
+  margin-bottom: 6px;
 }
 
-.preview {
-  margin: 10px 0 0;
+.lede {
+  font-size: 0.94rem;
+  line-height: 1.58;
   color: var(--muted);
-  font-size: 0.96rem;
-  line-height: 1.55;
+  max-width: 60ch;
+  margin-top: 4px;
 }
 
-.details {
-  margin: 12px 0 0;
+.byline {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.01em;
 }
 
-.story-link {
-  color: var(--accent);
+.byline a {
+  color: var(--wine);
   text-decoration: none;
-  font-size: 0.92rem;
+  font-style: italic;
 }
 
-.story-link:hover {
+.byline a:hover {
   text-decoration: underline;
 }
 
+/* ── Empty state ── */
+
 .empty {
-  padding: 32px 12px;
+  padding: 40px 0;
+  text-align: center;
   color: var(--muted);
-  font-size: 0.98rem;
+  font-style: italic;
 }
 
-@media (max-width: 640px) {
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
   .page {
-    width: min(100vw - 20px, 920px);
-    padding-top: 22px;
+    width: calc(100vw - 28px);
+    padding: 28px 0 48px;
   }
 
-  .hero,
-  .day {
-    border-radius: 18px;
+  h1 {
+    font-size: 2.4rem;
+    line-height: 0.94;
   }
 
-  .hero {
-    padding: 22px 18px;
-  }
+  .masthead { margin-bottom: 28px; }
 
-  .day {
-    padding: 18px;
-  }
+  .dateline h2 { font-size: 0.92rem; }
 
-  .hero-stats {
-    grid-template-columns: 1fr;
-  }
+  .item { padding-left: 22px; padding-bottom: 16px; }
+  .item + .item { padding-top: 14px; }
+}
 
-  .day-header {
-    align-items: start;
-    flex-direction: column;
-  }
+/* ── Print ── */
 
-  .story-card {
-    padding: 14px;
-  }
+@media print {
+  body { background: #fff; font-size: 11pt; }
+  .page { width: 100%; padding: 0; }
+  .masthead-rule { border-color: #000; }
+  .item h3 a { color: #000; background: none; }
+  .byline a::after { content: " (" attr(href) ")"; font-size: 0.7em; }
 }
 """.strip() + "\n"

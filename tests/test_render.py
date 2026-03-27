@@ -23,8 +23,11 @@ class RenderTests(unittest.TestCase):
         )
         html = build_index_html([article], config)
         self.assertIn("KAIST Research Digest", html)
+        self.assertIn("Private Tailnet Edition", html)
         self.assertIn("Flowers Have a Biological Clock", html)
         self.assertIn("꽃은 곤충 맞춰 피고 향기 내는 생체시계 있다", html)
+        self.assertIn("<ol class=\"stories\">", html)
+        self.assertIn("Friday, 27 March 2026", html)
 
     def test_build_index_html_uses_base_path(self) -> None:
         config = default_config()
@@ -41,6 +44,7 @@ class RenderTests(unittest.TestCase):
         html = build_index_html([article], config)
         self.assertIn('<base href="/herald/">', html)
         self.assertIn('<link rel="stylesheet" href="/herald/assets/styles.css">', html)
+        self.assertIn("fonts.googleapis.com", html)
 
     def test_build_index_html_prefers_summary_over_preview(self) -> None:
         config = default_config()
@@ -57,6 +61,7 @@ class RenderTests(unittest.TestCase):
         html = build_index_html([article], config)
         self.assertIn("This is the generated summary.", html)
         self.assertNotIn("This preview should not be shown.", html)
+        self.assertIn("KAIST Research News &middot; Korean", html)
 
     def test_build_index_html_does_not_truncate_generated_summary(self) -> None:
         config = default_config()
