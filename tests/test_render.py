@@ -42,6 +42,22 @@ class RenderTests(unittest.TestCase):
         self.assertIn('<base href="/herald/">', html)
         self.assertIn('<link rel="stylesheet" href="/herald/assets/styles.css">', html)
 
+    def test_build_index_html_prefers_summary_over_preview(self) -> None:
+        config = default_config()
+        article = Article(
+            id="kr_1",
+            title="Flowers Have a Biological Clock",
+            date="2026.03.27",
+            url="https://example.com/story",
+            lang="kr",
+            source="kr_research",
+            preview="This preview should not be shown.",
+            summary="This is the generated summary.",
+        )
+        html = build_index_html([article], config)
+        self.assertIn("This is the generated summary.", html)
+        self.assertNotIn("This preview should not be shown.", html)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,7 @@ class Article:
     lang: str
     source: str
     preview: str
+    summary: str | None = None
     is_research: bool | None = None
     classifier: str | None = None
     confidence: float | None = None
@@ -51,6 +52,7 @@ class AppConfig:
     classifier_mode: str
     classification_model: str
     translation_model: str
+    summary_model: str
     translation_batch_size: int
     archive_path: str
     cache_path: str

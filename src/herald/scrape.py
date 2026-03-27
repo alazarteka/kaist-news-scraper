@@ -35,6 +35,24 @@ class KAISTScraper:
         response.raise_for_status()
         return response.text
 
+    def fetch_article_text(self, url: str) -> str:
+        response = self.client.get(url)
+        response.raise_for_status()
+        return self.extract_article_text(response.text)
+
+    def extract_article_text(self, html: str) -> str:
+        soup = BeautifulSoup(html, "html.parser")
+        content = soup.select_one("div.prog_contents")
+        if content is None:
+            content = soup.select_one("div.prog_bord_view")
+        if content is None:
+            return ""
+
+        for tag in content.select("script, style, img, iframe, video"):
+            tag.decompose()
+
+        return normalize_text(content.get_text(" ", strip=True))
+
     def parse_listing_page(self, html: str, source: SourceConfig) -> list[Article]:
         soup = BeautifulSoup(html, "html.parser")
         articles: list[Article] = []

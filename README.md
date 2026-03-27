@@ -7,8 +7,9 @@ Each run:
 1. scrapes KAIST research and news feeds
 2. classifies research items with rules and optional OpenRouter fallback
 3. translates selected Korean titles into English
-4. merges new items into a persistent archive
-5. renders a single static HTML page and JSON feed
+4. generates short English summaries from article bodies
+5. merges new items into a persistent archive
+6. renders a single static HTML page and JSON feed
 
 The output is intentionally simple: minimal CSS, no client-side JavaScript, newest days first. It is designed to sit behind your Tailscale-accessible host and rebuild unattended every night.
 
@@ -94,6 +95,8 @@ By default the application writes:
 These are runtime artifacts and should stay out of git.
 
 If Herald is mounted under a path prefix such as `/herald`, set `site_base_path` in the config so browsers resolve assets correctly.
+
+When `OPENROUTER_API_KEY` is available, Herald prefers AI-generated article summaries over the short list-page teaser text.
 
 ## Operations
 

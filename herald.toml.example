@@ -10,6 +10,7 @@ request_delay_seconds = 0.5
 classifier_mode = "auto"
 classification_model = "qwen/qwen-2.5-7b-instruct"
 translation_model = "openai/gpt-4.1-mini"
+summary_model = "openai/gpt-4.1-nano"
 translation_batch_size = 16
 archive_path = "var/archive.json"
 cache_path = "var/openrouter-cache.json"

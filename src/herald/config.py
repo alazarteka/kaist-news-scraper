@@ -20,6 +20,7 @@ def default_config() -> AppConfig:
         classifier_mode="auto",
         classification_model="qwen/qwen-2.5-7b-instruct",
         translation_model="openai/gpt-4.1-mini",
+        summary_model="openai/gpt-4.1-nano",
         translation_batch_size=16,
         archive_path="var/archive.json",
         cache_path="var/openrouter-cache.json",
@@ -53,6 +54,7 @@ request_delay_seconds = {current.request_delay_seconds}
 classifier_mode = "{current.classifier_mode}"
 classification_model = "{current.classification_model}"
 translation_model = "{current.translation_model}"
+summary_model = "{current.summary_model}"
 translation_batch_size = {current.translation_batch_size}
 archive_path = "{current.archive_path}"
 cache_path = "{current.cache_path}"
@@ -85,6 +87,7 @@ def load_config(path: Path | None) -> AppConfig:
             app.get("classification_model", config.classification_model)
         ),
         translation_model=str(app.get("translation_model", config.translation_model)),
+        summary_model=str(app.get("summary_model", config.summary_model)),
         translation_batch_size=int(
             app.get("translation_batch_size", config.translation_batch_size)
         ),

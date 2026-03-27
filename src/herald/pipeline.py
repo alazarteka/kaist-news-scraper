@@ -9,6 +9,7 @@ from .models import AppConfig, BuildStats
 from .render import render_site
 from .scrape import KAISTScraper
 from .classify import classify_articles
+from .summarize import summarize_selected_articles
 from .translate import translate_selected_titles
 from .utils import parse_date
 
@@ -28,25 +29,38 @@ def build_site(config: AppConfig) -> BuildStats:
             cutoff_date=cutoff,
             delay_seconds=config.request_delay_seconds,
         )
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        classified_articles = classify_articles(
+            scraped_articles,
+            mode=config.classifier_mode,
+            model=config.classification_model,
+            cache_path=cache_path,
+            api_key=api_key,
+        )
+        selected_articles = [article for article in classified_articles if article.is_research]
+        translated_titles = translate_selected_titles(
+            selected_articles,
+            model=config.translation_model,
+            cache_path=cache_path,
+            api_key=api_key,
+            batch_size=config.translation_batch_size,
+        )
+        article_texts: dict[str, str] = {}
+        if api_key:
+            article_texts = {
+                article.id: scraper.fetch_article_text(article.url)
+                for article in selected_articles
+                if not article.summary
+            }
+        summarize_selected_articles(
+            selected_articles,
+            article_texts=article_texts,
+            model=config.summary_model,
+            cache_path=cache_path,
+            api_key=api_key,
+        )
     finally:
         scraper.close()
-
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    classified_articles = classify_articles(
-        scraped_articles,
-        mode=config.classifier_mode,
-        model=config.classification_model,
-        cache_path=cache_path,
-        api_key=api_key,
-    )
-    selected_articles = [article for article in classified_articles if article.is_research]
-    translated_titles = translate_selected_titles(
-        selected_articles,
-        model=config.translation_model,
-        cache_path=cache_path,
-        api_key=api_key,
-        batch_size=config.translation_batch_size,
-    )
 
     merged_articles = merge_articles(snapshot.articles, selected_articles)
     saved = save_archive(archive_path, merged_articles)
