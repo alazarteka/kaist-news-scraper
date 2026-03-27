@@ -4,6 +4,7 @@
 source_keys = ["kr_research", "kr_news", "en_news"]
 page_limit = 5
 cutoff_days = 30
+start_date = ""
 catchup_overlap_days = 3
 request_delay_seconds = 0.5
 classifier_mode = "auto"

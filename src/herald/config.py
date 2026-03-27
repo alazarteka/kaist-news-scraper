@@ -14,6 +14,7 @@ def default_config() -> AppConfig:
         source_keys=["kr_research", "kr_news", "en_news"],
         page_limit=5,
         cutoff_days=30,
+        start_date=None,
         catchup_overlap_days=3,
         request_delay_seconds=0.5,
         classifier_mode="auto",
@@ -46,6 +47,7 @@ def render_config_toml(config: AppConfig | None = None) -> str:
 source_keys = [{source_keys}]
 page_limit = {current.page_limit}
 cutoff_days = {current.cutoff_days}
+start_date = "{current.start_date or ""}"
 catchup_overlap_days = {current.catchup_overlap_days}
 request_delay_seconds = {current.request_delay_seconds}
 classifier_mode = "{current.classifier_mode}"
@@ -71,6 +73,7 @@ def load_config(path: Path | None) -> AppConfig:
         source_keys=list(app.get("source_keys", config.source_keys)),
         page_limit=int(app.get("page_limit", config.page_limit)),
         cutoff_days=int(app.get("cutoff_days", config.cutoff_days)),
+        start_date=str(app.get("start_date", config.start_date or "")).strip() or None,
         catchup_overlap_days=int(
             app.get("catchup_overlap_days", config.catchup_overlap_days)
         ),

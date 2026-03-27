@@ -61,6 +61,12 @@ def build_site(config: AppConfig) -> BuildStats:
 
 
 def resolve_cutoff(config: AppConfig, snapshot) -> date:
+    if config.start_date:
+        parsed = parse_date(config.start_date)
+        if parsed is None:
+            raise ValueError(f"Invalid start_date in config: {config.start_date!r}")
+        return parsed
+
     default_cutoff = date.today() - timedelta(days=config.cutoff_days)
     latest_archived = latest_archive_date(snapshot.articles)
     if latest_archived is None:

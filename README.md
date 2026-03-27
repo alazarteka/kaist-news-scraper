@@ -18,6 +18,8 @@ The build is archive-aware. If the machine is off for a few days, the next run u
 
 For longer outages, raise `cutoff_days` and `page_limit` in your config.
 
+If you want to rebuild from a fixed historical point, set `start_date` in the config. When set, it overrides the rolling cutoff logic.
+
 ## Repository Layout
 
 ```text

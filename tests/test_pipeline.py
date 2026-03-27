@@ -8,6 +8,15 @@ from herald.pipeline import latest_archive_date, resolve_cutoff
 
 
 class PipelineCutoffTests(unittest.TestCase):
+    def test_resolve_cutoff_uses_start_date_when_configured(self) -> None:
+        config = default_config()
+        config.start_date = "2026-01-01"
+        snapshot = ArchiveSnapshot(generated_at="2026-03-27T00:00:00Z", articles=[])
+
+        cutoff = resolve_cutoff(config, snapshot)
+
+        self.assertEqual(str(cutoff), "2026-01-01")
+
     def test_resolve_cutoff_uses_archive_overlap_when_archive_exists(self) -> None:
         config = default_config()
         snapshot = ArchiveSnapshot(
