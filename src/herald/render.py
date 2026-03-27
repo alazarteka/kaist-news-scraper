@@ -109,10 +109,11 @@ def build_article_html(article: Article, include_original_title: bool) -> str:
     lang = "EN" if article.lang == "en" else "KR"
     title = html.escape(article.title)
     url = html.escape(article.url, quote=True)
-    body_text = article.summary or article.preview
     preview = ""
-    if body_text:
-        preview = f"<p class=\"preview\">{html.escape(compact_preview(body_text, limit=360))}</p>"
+    if article.summary:
+        preview = f"<p class=\"preview\">{html.escape(' '.join(article.summary.split()))}</p>"
+    elif article.preview:
+        preview = f"<p class=\"preview\">{html.escape(compact_preview(article.preview, limit=360))}</p>"
 
     return (
         "<li class=\"story\">"

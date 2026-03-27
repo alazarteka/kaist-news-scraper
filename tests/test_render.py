@@ -58,6 +58,29 @@ class RenderTests(unittest.TestCase):
         self.assertIn("This is the generated summary.", html)
         self.assertNotIn("This preview should not be shown.", html)
 
+    def test_build_index_html_does_not_truncate_generated_summary(self) -> None:
+        config = default_config()
+        summary = (
+            "Sentence one explains the finding in plain language. "
+            "Sentence two adds the method. "
+            "Sentence three gives the result. "
+            "Sentence four adds context. "
+            "Sentence five explains why it matters. "
+            "Sentence six confirms the full summary should still appear."
+        )
+        article = Article(
+            id="kr_1",
+            title="Flowers Have a Biological Clock",
+            date="2026.03.27",
+            url="https://example.com/story",
+            lang="kr",
+            source="kr_research",
+            preview="",
+            summary=summary,
+        )
+        html = build_index_html([article], config)
+        self.assertIn("Sentence six confirms the full summary should still appear.", html)
+
 
 if __name__ == "__main__":
     unittest.main()
