@@ -13,4 +13,5 @@ translation_batch_size = 16
 archive_path = "var/archive.json"
 cache_path = "var/openrouter-cache.json"
 site_dir = "site"
+site_base_path = "/"
 include_original_title = true

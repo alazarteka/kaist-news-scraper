@@ -55,6 +55,7 @@ class AppConfig:
     archive_path: str
     cache_path: str
     site_dir: str
+    site_base_path: str = "/"
     include_original_title: bool = True
 
 

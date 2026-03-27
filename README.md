@@ -91,6 +91,8 @@ By default the application writes:
 
 These are runtime artifacts and should stay out of git.
 
+If Herald is mounted under a path prefix such as `/herald`, set `site_base_path` in the config so browsers resolve assets correctly.
+
 ## Operations
 
 Production-oriented examples live in `deploy/`:

@@ -23,8 +23,16 @@ def default_config() -> AppConfig:
         archive_path="var/archive.json",
         cache_path="var/openrouter-cache.json",
         site_dir="site",
+        site_base_path="/",
         include_original_title=True,
     )
+
+
+def normalize_site_base_path(value: str) -> str:
+    cleaned = "/" + value.strip().strip("/")
+    if cleaned == "/":
+        return "/"
+    return cleaned + "/"
 
 
 def render_config_toml(config: AppConfig | None = None) -> str:
@@ -47,6 +55,7 @@ translation_batch_size = {current.translation_batch_size}
 archive_path = "{current.archive_path}"
 cache_path = "{current.cache_path}"
 site_dir = "{current.site_dir}"
+site_base_path = "{current.site_base_path}"
 include_original_title = {include_original_title}
 """
 
@@ -79,6 +88,9 @@ def load_config(path: Path | None) -> AppConfig:
         archive_path=str(app.get("archive_path", config.archive_path)),
         cache_path=str(app.get("cache_path", config.cache_path)),
         site_dir=str(app.get("site_dir", config.site_dir)),
+        site_base_path=normalize_site_base_path(
+            str(app.get("site_base_path", config.site_base_path))
+        ),
         include_original_title=bool(
             app.get("include_original_title", config.include_original_title)
         ),

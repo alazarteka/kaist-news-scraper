@@ -60,13 +60,16 @@ def build_index_html(articles: list[Article], config: AppConfig) -> str:
 
     updated_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     body = "\n".join(sections) or "<p class=\"empty\">No research items yet.</p>"
+    base_path = html.escape(config.site_base_path, quote=True)
+    stylesheet_href = html.escape(f"{config.site_base_path}assets/styles.css", quote=True)
     return f"""<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <base href="{base_path}">
     <title>KAIST Research Digest</title>
-    <link rel="stylesheet" href="assets/styles.css">
+    <link rel="stylesheet" href="{stylesheet_href}">
   </head>
   <body>
     <main class="page">
